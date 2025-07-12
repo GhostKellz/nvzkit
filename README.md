@@ -7,6 +7,8 @@
 > **nvzkit** is a high-performance, next-gen NVIDIA container toolkit built with Zig.<br>
 > Designed for seamless GPU passthrough, runtime detection, and lightning-fast management of GPU-accelerated containers.
 
+**⚠️ v0.1.0 is an MVP release. Some features may be experimental. Please report bugs or contribute!**
+
 ---
 
 ## 🚀 Features
@@ -35,20 +37,45 @@ sudo ./nvzkit run --gpu ...
 
 ---
 
-## 🛠️ Planned Commands
+## 🛠️ Current Commands (v0.1.0)
 
-* `nvzkit info` – Show all detected GPUs, driver/version info, health
-* `nvzkit run` – Launch container with GPU passthrough
-* `nvzkit shell` – Drop into a container shell with GPU context
-* `nvzkit mount` – Mount NVIDIA driver files/bind mounts
-* `nvzkit debug` – Print detailed logs for troubleshooting
+* ✅ `nvzkit info` – Show all detected GPUs, driver/version info, health
+* ✅ `nvzkit run` – Launch container with GPU passthrough
+* ✅ `nvzkit shell` – Drop into a container shell with GPU context
+* ✅ `nvzkit help` – Show help and usage information
+
+---
+
+## 🚧 Planned Features
+
+* [ ] `nvzkit mount` – Advanced NVIDIA driver files/bind mount management
+* [ ] `nvzkit debug` – Detailed logs and troubleshooting diagnostics
+* [ ] CDI (Container Device Interface) mode support
+* [ ] CSV mode compatibility
+* [ ] TOML configuration file support
+* [ ] Container runtime auto-detection improvements
+* [ ] GPU isolation/sandboxing helpers
+* [ ] Better error handling and user feedback
+* [ ] Comprehensive test suite
+* [ ] Performance benchmarking vs nvidia-container-toolkit
+
+---
+
+## ⚠️ Known Issues
+
+* **CSV and CDI modes**: Not yet implemented (legacy mode works)
+* **Container runtime detection**: Basic implementation, may need manual specification
+* **Error handling**: Some edge cases may not be gracefully handled
+* **Testing**: Limited test coverage on different GPU configurations
+* **Configuration**: TOML parsing not yet implemented
+* **Documentation**: Some features need better documentation
 
 ---
 
 ## 🤝 Compatibility
 
 * **NVIDIA Drivers**: 515+ (Open & Proprietary)
-* **Container Engines**: Docker, Podman, Zig-native
+* **Container Engines**: Docker, Podman (basic support)
 * **OS**: Linux (x86\_64, aarch64)
 * **Zig**: v0.15 or newer
 
@@ -62,19 +89,20 @@ sudo ./nvzkit run --gpu ...
 
 ---
 
-## 📢 Roadmap
-
-* [ ] Container runtime auto-detect
-* [ ] GPU isolation/sandboxing helpers
-* [ ] Better diagnostics & healthcheck UX
-* [ ] Full podman/docker drop-in support
-
----
-
 ## 🧙‍♂️ About
 
 nvzkit is an independent project, not affiliated with NVIDIA.
 Built for hackers, homelabbers, and power users who want to push their GPU infrastructure further—with Zig.
+
+This project implements functionality compatible with the [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-container-toolkit).
+nvzkit is an independent clean-room reimplementation and does not include any original NVIDIA source code.
+
+---
+
+## 📄 License & Attribution
+
+nvzkit is licensed under the MIT License. See the [NOTICE](NOTICE) file for 
+attribution to the original NVIDIA Container Toolkit project and third-party dependencies.
 
 ---
 

@@ -1,0 +1,28 @@
+nvzkit - NVIDIA Container Toolkit for Zig
+
+This project implements functionality compatible with the NVIDIA Container Toolkit.
+
+===============================================================================
+
+This project is inspired by and implements functionality compatible with:
+NVIDIA Container Toolkit
+Repository: https://github.com/NVIDIA/nvidia-container-toolkit
+Copyright NVIDIA Corporation
+Licensed under the Apache License, Version 2.0
+
+nvzkit is an independent clean-room reimplementation and does not include 
+any original NVIDIA source code. All functionality has been implemented 
+independently based on public specifications and behavioral analysis.
+
+Original NVIDIA Container Toolkit License Information:
+- License: Apache License, Version 2.0
+- Contributing: https://github.com/NVIDIA/nvidia-container-toolkit/blob/main/CONTRIBUTING.md
+- Developer Certificate of Origin (DCO) required for contributions
+- Full license text: https://github.com/NVIDIA/nvidia-container-toolkit/blob/main/LICENSE
+
+nvzkit is licensed under the MIT License (see LICENSE file).
+
+===============================================================================
+
+Third-party dependencies and their licenses are documented in their 
+respective source files and build configurations.
