@@ -32,26 +32,28 @@ pub const Config = struct {
     debug: bool,
     library_paths: std.ArrayList([]const u8),
     device_paths: std.ArrayList([]const u8),
+    allocator: std.mem.Allocator,
     
     pub fn init(allocator: std.mem.Allocator) Config {
         return Config{
             .runtime_mode = .cdi,
             .debug = false,
-            .library_paths = std.ArrayList([]const u8).init(allocator),
-            .device_paths = std.ArrayList([]const u8).init(allocator),
+            .library_paths = std.ArrayList([]const u8){},
+            .device_paths = std.ArrayList([]const u8){},
+            .allocator = allocator,
         };
     }
     
     pub fn deinit(self: *Config) void {
         for (self.library_paths.items) |path| {
-            self.library_paths.allocator.free(path);
+            self.allocator.free(path);
         }
-        self.library_paths.deinit();
+        self.library_paths.deinit(self.allocator);
         
         for (self.device_paths.items) |path| {
-            self.device_paths.allocator.free(path);
+            self.allocator.free(path);
         }
-        self.device_paths.deinit();
+        self.device_paths.deinit(self.allocator);
     }
     
     /// Load default configuration
@@ -59,12 +61,12 @@ pub const Config = struct {
         var config = Config.init(allocator);
         
         // Add default library paths
-        try config.library_paths.append(try allocator.dupe(u8, "/usr/lib/x86_64-linux-gnu"));
-        try config.library_paths.append(try allocator.dupe(u8, "/usr/lib64"));
-        try config.library_paths.append(try allocator.dupe(u8, "/usr/local/cuda/lib64"));
+        try config.library_paths.append(allocator, try allocator.dupe(u8, "/usr/lib/x86_64-linux-gnu"));
+        try config.library_paths.append(allocator, try allocator.dupe(u8, "/usr/lib64"));
+        try config.library_paths.append(allocator, try allocator.dupe(u8, "/usr/local/cuda/lib64"));
         
         // Add default device paths
-        try config.device_paths.append(try allocator.dupe(u8, "/dev"));
+        try config.device_paths.append(allocator, try allocator.dupe(u8, "/dev"));
         
         return config;
     }

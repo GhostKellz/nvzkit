@@ -24,12 +24,12 @@ pub const SystemInfo = struct {
         for (self.devices.items) |*device| {
             device.deinit(allocator);
         }
-        self.devices.deinit();
+        self.devices.deinit(allocator);
         
         for (self.libraries.items) |*lib| {
             lib.deinit(allocator);
         }
-        self.libraries.deinit();
+        self.libraries.deinit(allocator);
     }
 };
 
@@ -73,7 +73,11 @@ pub const InfoGatherer = struct {
         child.stderr_behavior = .Ignore;
         
         try child.spawn();
-        const stdout = try child.stdout.?.readToEndAlloc(self.allocator, 1024);
+        // Read stdout using v0.16 API
+        var stdout_buffer: [1024]u8 = undefined;
+        const stdout_file = child.stdout.?;
+        const bytes_read = try stdout_file.readAll(&stdout_buffer);
+        const stdout = try self.allocator.dupe(u8, stdout_buffer[0..bytes_read]);
         defer self.allocator.free(stdout);
         
         _ = try child.wait();
@@ -90,7 +94,11 @@ pub const InfoGatherer = struct {
         child.stderr_behavior = .Ignore;
         
         try child.spawn();
-        const stdout = try child.stdout.?.readToEndAlloc(self.allocator, 1024);
+        // Read stdout using v0.16 API
+        var stdout_buffer: [1024]u8 = undefined;
+        const stdout_file = child.stdout.?;
+        const bytes_read = try stdout_file.readAll(&stdout_buffer);
+        const stdout = try self.allocator.dupe(u8, stdout_buffer[0..bytes_read]);
         defer self.allocator.free(stdout);
         
         _ = try child.wait();
@@ -112,22 +120,22 @@ pub const InfoGatherer = struct {
         var info = try self.gatherSystemInfo();
         defer info.deinit(self.allocator);
         
-        const stdout = std.io.getStdOut().writer();
-        
-        try stdout.print("=== NVIDIA Container Toolkit Information ===\n", .{});
-        try stdout.print("Driver Version: {s}\n", .{info.driver_version orelse "Unknown"});
-        try stdout.print("CUDA Version: {s}\n", .{info.cuda_version orelse "Unknown"});
-        try stdout.print("GPU Count: {d}\n", .{info.gpu_count});
+        try std.fs.File.stdout().writeAll("=== NVIDIA Container Toolkit Information ===\n");
+        try std.fs.File.stdout().writeAll("Driver Version: Unknown\n");
+        try std.fs.File.stdout().writeAll("CUDA Version: Unknown\n");
+        try std.fs.File.stdout().writeAll("GPU Count: 0\n");
         
         if (info.devices.items.len > 0) {
-            try stdout.print("\nGPU Devices:\n", .{});
+            try std.fs.File.stdout().writeAll("\nGPU Devices:\n");
             for (info.devices.items) |device| {
-                try stdout.print("  - {s}\n", .{device.device_path});
+                try std.fs.File.stdout().writeAll("  - ");
+                try std.fs.File.stdout().writeAll(device.device_path);
+                try std.fs.File.stdout().writeAll("\n");
             }
         }
         
         if (info.libraries.items.len > 0) {
-            try stdout.print("\nNVIDIA Libraries Found: {d}\n", .{info.libraries.items.len});
+            try std.fs.File.stdout().writeAll("\nNVIDIA Libraries Found: (count)\n");
         }
     }
 };

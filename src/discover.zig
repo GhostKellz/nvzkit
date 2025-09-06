@@ -15,7 +15,7 @@ pub const GpuDevice = struct {
         for (self.capabilities.items) |cap| {
             allocator.free(cap);
         }
-        self.capabilities.deinit();
+        self.capabilities.deinit(allocator);
         allocator.free(self.device_path);
     }
 };
@@ -45,7 +45,7 @@ pub const Discoverer = struct {
     
     /// Discover NVIDIA character devices (/dev/nvidia*)
     pub fn discoverCharDevices(self: *Discoverer) !std.ArrayList(GpuDevice) {
-        var devices = std.ArrayList(GpuDevice).init(self.allocator);
+        var devices = std.ArrayList(GpuDevice){};
         
         var dev_dir = std.fs.openDirAbsolute("/dev", .{ .iterate = true }) catch |err| switch (err) {
             error.FileNotFound => return devices,
@@ -63,10 +63,10 @@ pub const Discoverer = struct {
                 const device = GpuDevice{
                     .device_path = device_path,
                     .minor = 0, // TODO: Parse from device
-                    .capabilities = std.ArrayList([]const u8).init(self.allocator),
+                    .capabilities = std.ArrayList([]const u8){},
                 };
                 
-                try devices.append(device);
+                try devices.append(self.allocator, device);
             }
         }
         
@@ -75,7 +75,7 @@ pub const Discoverer = struct {
     
     /// Discover NVIDIA driver libraries
     pub fn discoverDriverLibraries(self: *Discoverer) !std.ArrayList(Mount) {
-        var mounts = std.ArrayList(Mount).init(self.allocator);
+        var mounts = std.ArrayList(Mount){};
         
         // Common NVIDIA library paths
         const lib_paths = [_][]const u8{
@@ -108,7 +108,7 @@ pub const Discoverer = struct {
                         .options = options,
                     };
                     
-                    try mounts.append(mount);
+                    try mounts.append(self.allocator, mount);
                 }
             }
         }
@@ -124,7 +124,7 @@ test "discover char devices" {
         for (devices.items) |*device| {
             device.deinit(std.testing.allocator);
         }
-        devices.deinit();
+        devices.deinit(std.testing.allocator);
     }
     
     // Test should not fail even if no devices are found
@@ -138,7 +138,7 @@ test "discover driver libraries" {
         for (mounts.items) |*mount| {
             mount.deinit(std.testing.allocator);
         }
-        mounts.deinit();
+        mounts.deinit(std.testing.allocator);
     }
     
     // Test should not fail even if no libraries are found

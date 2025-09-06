@@ -23,9 +23,10 @@ pub const CliArgs = struct {
     verbose: bool,
     runtime_mode: ?config.RuntimeMode,
     container_args: std.ArrayList([]const u8),
+    allocator: std.mem.Allocator,
     
     pub fn deinit(self: *CliArgs) void {
-        self.container_args.deinit();
+        self.container_args.deinit(self.allocator);
     }
 };
 
@@ -51,7 +52,8 @@ pub const Cli = struct {
             .command = .help,
             .verbose = false,
             .runtime_mode = null,
-            .container_args = std.ArrayList([]const u8).init(self.allocator),
+            .container_args = std.ArrayList([]const u8){},
+            .allocator = self.allocator,
         };
         
         if (args.len < 2) {
@@ -81,7 +83,7 @@ pub const Cli = struct {
                 }
             } else {
                 // Remaining args are container arguments
-                try cli_args.container_args.append(args[i]);
+                try cli_args.container_args.append(self.allocator, args[i]);
             }
             i += 1;
         }
@@ -114,26 +116,25 @@ pub const Cli = struct {
     /// Execute run command
     fn executeRun(self: *Cli, container_args: []const []const u8) !void {
         if (container_args.len == 0) {
-            const stderr = std.io.getStdErr().writer();
-            try stderr.print("Error: No container image specified\n", .{});
-            try stderr.print("Usage: nvzkit run <image> [args...]\n", .{});
+            try std.fs.File.stderr().writeAll("Error: No container image specified\n");
+            try std.fs.File.stderr().writeAll("Usage: nvzkit run <image> [args...]\n");
             return;
         }
         
         // Build docker/podman command
-        var cmd_args = std.ArrayList([]const u8).init(self.allocator);
-        defer cmd_args.deinit();
+        var cmd_args = std.ArrayList([]const u8){};
+        defer cmd_args.deinit(self.allocator);
         
         // Detect container runtime
         const runtime_cmd = self.detectContainerRuntime() catch "docker";
-        try cmd_args.append(runtime_cmd);
-        try cmd_args.append("run");
-        try cmd_args.append("--gpus");
-        try cmd_args.append("all");
+        try cmd_args.append(self.allocator, runtime_cmd);
+        try cmd_args.append(self.allocator, "run");
+        try cmd_args.append(self.allocator, "--gpus");
+        try cmd_args.append(self.allocator, "all");
         
         // Add container arguments
         for (container_args) |arg| {
-            try cmd_args.append(arg);
+            try cmd_args.append(self.allocator, arg);
         }
         
         // Execute container runtime
@@ -152,21 +153,21 @@ pub const Cli = struct {
     
     /// Execute shell command
     fn executeShell(self: *Cli, container_args: []const []const u8) !void {
-        var shell_args = std.ArrayList([]const u8).init(self.allocator);
-        defer shell_args.deinit();
+        var shell_args = std.ArrayList([]const u8){};
+        defer shell_args.deinit(self.allocator);
         
         // Add shell arguments
         if (container_args.len > 0) {
             for (container_args) |arg| {
-                try shell_args.append(arg);
+                try shell_args.append(self.allocator, arg);
             }
         } else {
             // Default to nvidia/cuda image
-            try shell_args.append("nvidia/cuda:latest");
+            try shell_args.append(self.allocator, "nvidia/cuda:latest");
         }
         
         // Add interactive shell flags
-        try shell_args.append("/bin/bash");
+        try shell_args.append(self.allocator, "/bin/bash");
         
         // Execute run command with shell
         try self.executeRun(shell_args.items);
@@ -174,23 +175,22 @@ pub const Cli = struct {
     
     /// Execute help command
     fn executeHelp(_: *Cli) !void {
-        const stdout = std.io.getStdOut().writer();
-        try stdout.print("nvzkit - NVIDIA Container Toolkit (Zig)\n\n", .{});
-        try stdout.print("USAGE:\n", .{});
-        try stdout.print("    nvzkit <COMMAND> [OPTIONS]\n\n", .{});
-        try stdout.print("COMMANDS:\n", .{});
-        try stdout.print("    info      Display system information about NVIDIA GPUs and drivers\n", .{});
-        try stdout.print("    run       Run a container with GPU access\n", .{});
-        try stdout.print("    shell     Start an interactive shell in a GPU-enabled container\n", .{});
-        try stdout.print("    help      Show this help message\n\n", .{});
-        try stdout.print("OPTIONS:\n", .{});
-        try stdout.print("    -v, --verbose         Enable verbose output\n", .{});
-        try stdout.print("    --runtime-mode MODE   Set runtime mode (legacy, csv, cdi)\n", .{});
-        try stdout.print("    -h, --help            Show help\n\n", .{});
-        try stdout.print("EXAMPLES:\n", .{});
-        try stdout.print("    nvzkit info\n", .{});
-        try stdout.print("    nvzkit run nvidia/cuda:latest nvidia-smi\n", .{});
-        try stdout.print("    nvzkit shell nvidia/cuda:latest\n", .{});
+        try std.fs.File.stdout().writeAll("nvzkit - NVIDIA Container Toolkit (Zig)\n\n");
+        try std.fs.File.stdout().writeAll("USAGE:\n");
+        try std.fs.File.stdout().writeAll("    nvzkit <COMMAND> [OPTIONS]\n\n");
+        try std.fs.File.stdout().writeAll("COMMANDS:\n");
+        try std.fs.File.stdout().writeAll("    info      Display system information about NVIDIA GPUs and drivers\n");
+        try std.fs.File.stdout().writeAll("    run       Run a container with GPU access\n");
+        try std.fs.File.stdout().writeAll("    shell     Start an interactive shell in a GPU-enabled container\n");
+        try std.fs.File.stdout().writeAll("    help      Show this help message\n\n");
+        try std.fs.File.stdout().writeAll("OPTIONS:\n");
+        try std.fs.File.stdout().writeAll("    -v, --verbose         Enable verbose output\n");
+        try std.fs.File.stdout().writeAll("    --runtime-mode MODE   Set runtime mode (legacy, csv, cdi)\n");
+        try std.fs.File.stdout().writeAll("    -h, --help            Show help\n\n");
+        try std.fs.File.stdout().writeAll("EXAMPLES:\n");
+        try std.fs.File.stdout().writeAll("    nvzkit info\n");
+        try std.fs.File.stdout().writeAll("    nvzkit run nvidia/cuda:latest nvidia-smi\n");
+        try std.fs.File.stdout().writeAll("    nvzkit shell nvidia/cuda:latest\n");
     }
     
     /// Detect available container runtime

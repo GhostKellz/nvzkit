@@ -20,7 +20,7 @@ pub const OciSpec = struct {
             for (self.env.items) |env_var| {
                 allocator.free(env_var);
             }
-            self.env.deinit();
+            self.env.deinit(allocator);
         }
     };
     
@@ -37,7 +37,7 @@ pub const OciSpec = struct {
             for (self.options.items) |option| {
                 allocator.free(option);
             }
-            self.options.deinit();
+            self.options.deinit(allocator);
         }
     };
     
@@ -60,14 +60,14 @@ pub const OciSpec = struct {
             for (self.devices.items) |*device| {
                 device.deinit(allocator);
             }
-            self.devices.deinit();
+            self.devices.deinit(allocator);
         }
     };
     
-    pub fn init(allocator: std.mem.Allocator) OciSpec {
+    pub fn init(_: std.mem.Allocator) OciSpec {
         return OciSpec{
             .process = null,
-            .mounts = std.ArrayList(OciMount).init(allocator),
+            .mounts = std.ArrayList(OciMount){},
             .linux = null,
         };
     }
@@ -80,7 +80,7 @@ pub const OciSpec = struct {
         for (self.mounts.items) |*mount| {
             mount.deinit(allocator);
         }
-        self.mounts.deinit();
+        self.mounts.deinit(allocator);
         
         if (self.linux) |*linux| {
             linux.deinit(allocator);
@@ -119,13 +119,13 @@ pub const RuntimeModifier = struct {
             for (devices.items) |*device| {
                 device.deinit(self.allocator);
             }
-            devices.deinit();
+            devices.deinit(self.allocator);
         }
         
         // Ensure linux section exists
         if (spec.linux == null) {
             spec.linux = OciSpec.Linux{
-                .devices = std.ArrayList(OciSpec.Linux.Device).init(self.allocator),
+                .devices = std.ArrayList(OciSpec.Linux.Device){},
             };
         }
         
@@ -137,7 +137,7 @@ pub const RuntimeModifier = struct {
                 .major = 195, // NVIDIA major device number
                 .minor = @intCast(device.minor),
             };
-            try spec.linux.?.devices.append(oci_device);
+            try spec.linux.?.devices.append(self.allocator, oci_device);
         }
         
         // Add library mounts
@@ -146,13 +146,13 @@ pub const RuntimeModifier = struct {
             for (libraries.items) |*lib| {
                 lib.deinit(self.allocator);
             }
-            libraries.deinit();
+            libraries.deinit(self.allocator);
         }
         
         for (libraries.items) |lib| {
-            var options = std.ArrayList([]const u8).init(self.allocator);
-            try options.append(try self.allocator.dupe(u8, "bind"));
-            try options.append(try self.allocator.dupe(u8, "ro"));
+            var options = std.ArrayList([]const u8){};
+            try options.append(self.allocator, try self.allocator.dupe(u8, "bind"));
+            try options.append(self.allocator, try self.allocator.dupe(u8, "ro"));
             
             const oci_mount = OciSpec.OciMount{
                 .source = try self.allocator.dupe(u8, lib.source),
@@ -160,18 +160,18 @@ pub const RuntimeModifier = struct {
                 .type = try self.allocator.dupe(u8, "bind"),
                 .options = options,
             };
-            try spec.mounts.append(oci_mount);
+            try spec.mounts.append(self.allocator, oci_mount);
         }
         
         // Add environment variables
         if (spec.process == null) {
             spec.process = OciSpec.Process{
-                .env = std.ArrayList([]const u8).init(self.allocator),
+                .env = std.ArrayList([]const u8){},
             };
         }
         
-        try spec.process.?.env.append(try self.allocator.dupe(u8, "NVIDIA_VISIBLE_DEVICES=all"));
-        try spec.process.?.env.append(try self.allocator.dupe(u8, "NVIDIA_DRIVER_CAPABILITIES=compute,utility"));
+        try spec.process.?.env.append(self.allocator, try self.allocator.dupe(u8, "NVIDIA_VISIBLE_DEVICES=all"));
+        try spec.process.?.env.append(self.allocator, try self.allocator.dupe(u8, "NVIDIA_DRIVER_CAPABILITIES=compute,utility"));
     }
     
     /// CSV mode: use nvidia-container-cli
@@ -204,12 +204,12 @@ pub const RuntimeWrapper = struct {
     /// Execute container runtime with modified spec
     pub fn execRuntime(self: *RuntimeWrapper, args: []const []const u8) !void {
         // Build command line
-        var cmd_args = std.ArrayList([]const u8).init(self.allocator);
-        defer cmd_args.deinit();
+        var cmd_args = std.ArrayList([]const u8){};
+        defer cmd_args.deinit(self.allocator);
         
-        try cmd_args.append(self.runtime_path);
+        try cmd_args.append(self.allocator, self.runtime_path);
         for (args) |arg| {
-            try cmd_args.append(arg);
+            try cmd_args.append(self.allocator, arg);
         }
         
         // Execute runtime

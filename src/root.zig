@@ -14,7 +14,7 @@ pub const info = @import("info.zig");
 pub const cli = @import("cli.zig");
 
 // Version information
-pub const version = "0.1.0";
+pub const version = "0.2.0";
 
 test "nvzkit module imports" {
     _ = discover;

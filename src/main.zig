@@ -11,24 +11,21 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     
     // Initialize CLI
-    var cli = nvzkit.cli.Cli.init(allocator) catch |err| {
-        const stderr = std.io.getStdErr().writer();
-        try stderr.print("Error initializing nvzkit: {}\n", .{err});
+    var cli = nvzkit.cli.Cli.init(allocator) catch {
+        try std.fs.File.stderr().writeAll("Error initializing nvzkit\n");
         std.process.exit(1);
     };
     defer cli.deinit();
     
     // Parse and execute command
-    var cli_args = cli.parseArgs(args) catch |err| {
-        const stderr = std.io.getStdErr().writer();
-        try stderr.print("Error parsing arguments: {}\n", .{err});
+    var cli_args = cli.parseArgs(args) catch {
+        try std.fs.File.stderr().writeAll("Error parsing arguments\n");
         std.process.exit(1);
     };
     defer cli_args.deinit();
     
-    cli.execute(&cli_args) catch |err| {
-        const stderr = std.io.getStdErr().writer();
-        try stderr.print("Error executing command: {}\n", .{err});
+    cli.execute(&cli_args) catch {
+        try std.fs.File.stderr().writeAll("Error executing command\n");
         std.process.exit(1);
     };
 }
